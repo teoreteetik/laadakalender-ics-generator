@@ -1,0 +1,33 @@
+name: Periodic update of laadakalender-ics
+on:
+  schedule:
+    - cron: "45 10 * * *"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up JDK 22
+      uses: actions/setup-java@v4
+      with:
+        java-version: '22'
+        distribution: 'zulu'
+        cache: maven
+    - name: Run Main.java
+      run: mvn compile exec:java
+    - name: Check out laadakalender-ics repo
+      uses: actions/checkout@v4
+      with:
+        repository: teoreteetik/laadakalender-ics
+        path: ./laadakalender-ics
+        token:  ${{ secrets.LAADAKALENDER_ICS_GENERATOR_ACTION }}
+    - name: Commit generated ICS file to laadakalender-ics
+      run: |
+          cp laadakalender.ics laadakalender-ics/laadakalender.ics
+          cd laadakalender-ics
+          git config --global user.name 'GitHub Actions'
+          git config --global user.email 'none@none.ee'
+          git add laadakalender.ics
+          git commit -m "Automated update of laadakalender.ics" || true # "|| true" for not failing if there's nothing to commit
+          git push
